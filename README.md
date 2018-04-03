@@ -1,1 +1,1 @@
-Integrative Programming Midterm Project
+Integrative Programming R.M.I Project
