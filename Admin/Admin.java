@@ -15,15 +15,15 @@ public class Admin{
 		String line = "";
 		String[] str = null;
 		do {
+			Console c = System.console();
 			br = new BufferedReader(new FileReader("login.csv"));
-			System.out.print("Username: ");
-			String username = in.nextLine();
-			System.out.print("Password: ");
-			String password = in.nextLine();
+			String uName = c.readLine("Username: ");
+			char pwd[] = c.readPassword("Password: ");
+			String upwd = new String(pwd);
 			while ((line = br.readLine()) != null) {
 				str = line.split(",");
 			}
-			if(username.equalsIgnoreCase(str[0]) && password.equalsIgnoreCase(str[1])) {
+			if(uName.equalsIgnoreCase(str[0]) && upwd.equalsIgnoreCase(str[1])) {
 				counter = false;
 			}
 			else {
@@ -52,7 +52,7 @@ public class Admin{
 			//case 2: admin.stopServer(); break;
 			case 3: admin.createProject(); break;
 			case 4: admin.viewProject(); break;
-			default: System.out.println("Admin Terminated"); 
+			default: System.out.println("Admin Logged Out"); 
 				     System.out.println("---------------------------------------------------------------------------");
 				     System.exit(0);
 			}

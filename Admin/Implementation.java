@@ -51,8 +51,5 @@ public class Implementation extends UnicastRemoteObject implements Interface {
 			br.close();
 		} catch (Exception err) {}
 	}
-
-
-	
-
 }
+
