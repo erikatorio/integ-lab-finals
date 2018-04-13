@@ -4,6 +4,5 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 public interface ProjectInterface extends Remote {
-    public void startServer() throws RemoteException;
-    
+    public String test() throws RemoteException;
 }
