@@ -50,20 +50,30 @@ public class AdminServer extends UnicastRemoteObject implements ProjectInterface
             sqle.printStackTrace();
         }
     }
+    
+    public static boolean login(String username, String password) throws SQLException {
+        String query = "SELECT username, password FROM users WHERE username = ? AND password = ?";
+        PreparedStatement statement = conn.prepareStatement(query);
+        statement.setString(1, username);
+        statement.setString(2, password);
+        ResultSet result = statement.executeQuery();
+        if(result.next()){
+            return true;
+        } else {
+            return false;
+        }
+    }
 
-    public static void main(String[] args) throws SQLException, RemoteException {
+    public static void main(String[] args) throws RemoteException, SQLException {
         connectToDB();
         System.out.print("Enter username: ");
         String username = console.nextLine();
         System.out.print("Enter password: ");
         String password = console.nextLine();
         
-        String query = "SELECT username, password FROM users WHERE username = ? AND password = ?";
-        PreparedStatement statement = conn.prepareStatement(query);
-        statement.setString(1, username);
-        statement.setString(2, password);
-        ResultSet result = statement.executeQuery();
-        if(result.next()) {
+        boolean login = login(username, password);
+        
+        if(login) {
             System.out.println("Hi admin! What do you want to do today?");
             int choice;
             do {
