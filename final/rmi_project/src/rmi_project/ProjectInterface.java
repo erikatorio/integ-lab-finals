@@ -16,4 +16,6 @@ public interface ProjectInterface extends Remote {
     public String removeMember(String username, int project_id) throws RemoteException, SQLException;
     public String completeProject(int project_id) throws RemoteException, SQLException;
     public String uploadFile(String file, String username, int project_id) throws RemoteException, SQLException, FileNotFoundException;
+    public ArrayList viewAllProjects() throws RemoteException, SQLException;
+    public ArrayList viewUserProjects(String username) throws RemoteException, SQLException;
 }

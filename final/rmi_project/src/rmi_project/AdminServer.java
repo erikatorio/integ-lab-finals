@@ -389,17 +389,47 @@ public class AdminServer extends UnicastRemoteObject implements ProjectInterface
     //upload file
     @Override
     public String uploadFile(String file, String username, int project_id) throws RemoteException, SQLException, FileNotFoundException {
-            String sql = "INSERT into files(file, user, p_id) VALUES(?,?,?)";
-            PreparedStatement statement = conn.prepareStatement(sql);
-            InputStream in = new FileInputStream(new File(file));
-            statement.setBlob(1, in);
-            statement.setString(2, username);
-            statement.setInt(3, project_id);
-            int addedFile = statement.executeUpdate();
-            if (addedFile > 0) {
-                return "Successfully uploaded file!";
-            } else {
-                return "Upload Failed.";
-            }
+        String sql = "INSERT into files(file, user, p_id) VALUES(?,?,?)";
+        PreparedStatement statement = conn.prepareStatement(sql);
+        InputStream in = new FileInputStream(new File(file));
+        statement.setBlob(1, in);
+        statement.setString(2, username);
+        statement.setInt(3, project_id);
+        int addedFile = statement.executeUpdate();
+        if (addedFile > 0) {
+            return "Successfully uploaded file!";
+        } else {
+            return "Upload Failed.";
+        }
+    }
+    
+    //views all projects
+    @Override
+    public ArrayList viewAllProjects() throws RemoteException, SQLException {
+        String query = "SELECT project_name FROM projects";
+        PreparedStatement statement = conn.prepareStatement(query);
+        ResultSet result = statement.executeQuery();
+        ArrayList<String> projects = new ArrayList<>();
+        while(result.next()) {
+            String project = result.getString("project_name");
+            projects.add(project);
+        }
+        return projects;
+    }
+    
+    //view all normal user projects
+    @Override
+    public ArrayList viewUserProjects(String username) throws RemoteException, SQLException {
+        String query = "SELECT project_name FROM projects JOIN project_members ON projects.proj_id = project_members.project_id JOIN users ON users.username = project_members.username WHERE users.username = ? AND projects.status = ?";
+        PreparedStatement statement = conn.prepareStatement(query);
+        statement.setString(1, username);
+        statement.setString(2, "on-going");
+        ResultSet result = statement.executeQuery();
+        ArrayList<String> projects = new ArrayList<>();
+        while(result.next()) {
+            String p = result.getString("project_name");
+            projects.add(p);
+        }
+        return projects;
     }
 }

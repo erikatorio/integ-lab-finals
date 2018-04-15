@@ -31,6 +31,12 @@ public class Client {
            boolean login = stub.loginUser(username, password);
            
            if(login) {
+               ArrayList<String> projList = new ArrayList<>();
+               projList = stub.viewAllProjects();
+               System.out.println("Current Projects: ");
+               for (int h = 0; h < projList.size(); h++) {
+                   System.out.println(projList.get(h));
+               }
                System.out.print("Enter project name: ");
                String project = console.nextLine();
                boolean leader = stub.validateUserPrivileges(username, project);
@@ -107,7 +113,39 @@ public class Client {
                    } while (choice != 7);
                    
                } else {
-                   System.out.println("Hi user!");
+                   System.out.println("Hi user! What do you want to do today?");
+                   int userChoice;
+                   do {
+                       showUserMenu();
+                       System.out.print("Enter choice: ");
+                       userChoice = Integer.parseInt(console.nextLine());
+                       switch(userChoice) {
+                           case 1:
+                               ArrayList<String> userprojects = new ArrayList<>();
+                               userprojects = stub.viewUserProjects(username);
+                               System.out.println("Your projects:");
+                               for(int k = 0; k < userprojects.size(); k++) {
+                                   System.out.println(userprojects.get(k));
+                               }
+                               System.out.println("Press any key to continue...");
+                               console.nextLine();
+                               break;
+                           case 2:
+                               int pid = stub.getProjectID(project);
+                               System.out.print("Enter filepath to be uploaded: ");
+                               String fl = console.nextLine();
+                               String v = stub.uploadFile(fl, username, pid);
+                               System.out.println(v);
+                               System.out.println("Press any key to continue...");
+                               console.nextLine();
+                               break;
+                           case 3:
+                               System.exit(0);
+                               break;
+                           default:
+                               System.out.println("Invalid choice!");
+                       }
+                   } while (userChoice != 3);
                }
            } else {
                System.out.println("You are not a registered user.");
@@ -127,5 +165,11 @@ public class Client {
         System.out.println("5. Make project status complete.");
         System.out.println("6. File upload.");
         System.out.println("7. Exit");
+    }
+    
+    public static void showUserMenu() {
+        System.out.println("1. View projects.");
+        System.out.println("2. File upload");
+        System.out.println("3. Exit");
     }
 }
