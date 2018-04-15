@@ -97,7 +97,7 @@ public class Client {
                                break;
                            case 6:
                                int pIDToo = stub.getProjectID(project);
-                               System.out.print("Enter filename to be uploaded: ");
+                               System.out.print("Enter file path of file to be uploaded: ");
                                String f = console.nextLine();
                                String u = stub.uploadFile(f, username, pIDToo);
                                System.out.println(u);
@@ -132,7 +132,7 @@ public class Client {
                                break;
                            case 2:
                                int pid = stub.getProjectID(project);
-                               System.out.print("Enter filepath to be uploaded: ");
+                               System.out.print("Enter file path of file to be uploaded: ");
                                String fl = console.nextLine();
                                String v = stub.uploadFile(fl, username, pid);
                                System.out.println(v);
