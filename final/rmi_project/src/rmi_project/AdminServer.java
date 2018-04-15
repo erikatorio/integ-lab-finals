@@ -1,15 +1,22 @@
 package rmi_project;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.rmi.server.UnicastRemoteObject;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
 
 import java.sql.*;
+import java.util.ArrayList;
 //import java.text.DateFormat;
 //import java.text.ParseException;
 //import java.text.SimpleDateFormat;
 //import java.util.Date;
 import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 //import java.util.logging.Level;
 //import java.util.logging.Logger;
 
@@ -259,10 +266,140 @@ public class AdminServer extends UnicastRemoteObject implements ProjectInterface
         }
         
     }
-
-    //rmi tester method for client
+    
+    //login user
     @Override
-    public String test() throws RemoteException {
-       return "It works!";
+    public boolean loginUser(String username, String password) throws RemoteException, SQLException {
+        String query = "SELECT username, password FROM users WHERE username = ? AND password = ?";
+        PreparedStatement statement = conn.prepareStatement(query);
+        statement.setString(1, username);
+        statement.setString(2, password);
+        ResultSet result = statement.executeQuery();
+        if(result.next()){
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
+    //validate user privileges
+    @Override
+    public boolean validateUserPrivileges(String username, String project_name) throws RemoteException, SQLException {
+        String query = "SELECT project_name FROM projects WHERE leader = ? AND project_name = ?";
+        PreparedStatement statement = conn.prepareStatement(query);
+        statement.setString(1, username);
+        statement.setString(2, project_name);
+        ResultSet result = statement.executeQuery();
+        if(result.next()) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
+    //view projects as a leader
+    @Override
+    public ArrayList viewLeaderProjects(String username) throws RemoteException, SQLException {
+        String query = "SELECT project_name FROM projects WHERE leader = ?";
+        PreparedStatement statement = conn.prepareStatement(query);
+        statement.setString(1, username);
+        ResultSet result = statement.executeQuery();
+        ArrayList<String> projects = new ArrayList<>();
+        while(result.next()) {
+            String pName = result.getString("project_name");
+            projects.add(pName);
+        }
+        return projects;
+    }
+    
+    //view projects as normal member
+    @Override
+    public ArrayList viewProjects(String username) throws RemoteException, SQLException {
+        String query = "SELECT project_name FROM projects JOIN project_members ON projects.proj_id = project_members.project_id JOIN users ON users.username = project_members.username WHERE users.username = ?";
+        PreparedStatement statement = conn.prepareStatement(query);
+        statement.setString(1, username);
+        ResultSet result = statement.executeQuery();
+        ArrayList<String> projects = new ArrayList<>();
+        while(result.next()) {
+            String p = result.getString("project_name");
+            projects.add(p);
+        }
+        return projects;
+    }
+    
+    //add member to a project
+    @Override
+    public String addMember(String username, int project_id) throws RemoteException, SQLException {
+        String insertMember = "INSERT INTO project_members(username, project_id) VALUES(?,?)";
+        PreparedStatement statementToo = conn.prepareStatement(insertMember);
+        statementToo.setString(1, username);
+        statementToo.setInt(2, project_id);
+        int memberAdded = statementToo.executeUpdate();
+        if(memberAdded > 0) {
+            return "Member added!";
+        } else {
+            return "Member not added";
+        }
+    }
+    
+    //remove member from a project
+    @Override
+    public String removeMember(String username, int project_id) throws RemoteException, SQLException {
+        String sql = "DELETE FROM project_members WHERE username = ? AND project_id = ?";
+        PreparedStatement statement = conn.prepareStatement(sql);
+        statement.setString(1, username);
+        statement.setInt(2, project_id);     
+        int memberDeleted = statement.executeUpdate();
+        if(memberDeleted > 0) {
+            return "Member successfully removed!";
+        } else {
+            return "Not Removed.";
+        }
+    }
+    
+    //gets project id
+    @Override
+    public int getProjectID(String project) throws RemoteException, SQLException {
+        String query = "SELECT proj_id FROM projects WHERE project_name = ?";
+        PreparedStatement statement = conn.prepareStatement(query);
+        statement.setString(1, project);
+        ResultSet result = statement.executeQuery();
+        if(result.next()) {
+            return result.getInt("proj_id");
+        } else {
+            return -1;
+        }
+    }
+    
+    //make project status complete
+    @Override
+    public String completeProject(int project_id) throws RemoteException, SQLException {
+        String sql = "UPDATE projects SET status = ? WHERE proj_id = ?";
+        PreparedStatement statement = conn.prepareStatement(sql);
+        statement.setString(1, "completed");
+        statement.setInt(2, project_id);
+        int rowUpdated = statement.executeUpdate();
+        if (rowUpdated > 0) {
+            return "Project completed!";
+        } else {
+            return "Project still on-going.";
+        }
+    }
+    
+    //upload file
+    @Override
+    public String uploadFile(String file, String username, int project_id) throws RemoteException, SQLException, FileNotFoundException {
+            String sql = "INSERT into files(file, user, p_id) VALUES(?,?,?)";
+            PreparedStatement statement = conn.prepareStatement(sql);
+            InputStream in = new FileInputStream(new File(file));
+            statement.setBlob(1, in);
+            statement.setString(2, username);
+            statement.setInt(3, project_id);
+            int addedFile = statement.executeUpdate();
+            if (addedFile > 0) {
+                return "Successfully uploaded file!";
+            } else {
+                return "Upload Failed.";
+            }
     }
 }
