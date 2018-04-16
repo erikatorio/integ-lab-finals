@@ -122,17 +122,23 @@ public class Client {
                                console.nextLine();
                                break;
                            case 8:
-                               /**int prjtID = stub.getProjectID(project);
+                               int prjtID = stub.getProjectID(project);
                                ArrayList<String> fs = new ArrayList<>();
                                fs = stub.viewFiles(prjtID);
                                System.out.println("--------------------------------Project Files-------------------------------");
                                for (int q = 0; q < fs.size(); q++) {
                                    System.out.println(fs.get(q));
                                }
-                               System.out.println("Enter file name you want to download");
+                               System.out.print("Enter file name you want to download: ");
                                String dl = console.nextLine();
-                               String d = stub.downloadFile(dl, prjtID);
-                               System.out.println(d);**/
+                               System.out.print("Enter path directory where you want to place your download: ");
+                               String fp = console.nextLine();
+                               boolean d = stub.downloadFile(dl,fp,prjtID);
+                               if(d) {
+                                   System.out.println("Download Success.");
+                               } else {
+                                   System.out.println("Download failed.");
+                               }
                                break;
                            case 9:
                                int projID = stub.getProjectID(project);
@@ -152,15 +158,30 @@ public class Client {
                                System.out.println("Press any key to continue...");
                                console.nextLine();
                                break;
-                           case 10: 
+                           case 10:
+                               int proj_id = stub.getProjectID(project);
+                               System.out.print("Input the announcement for project "+project+": ");
+                               String announcement = console.nextLine();
+                               String a = stub.postAnnouncement(announcement, username, proj_id);
+                               System.out.println(a);
+                               break;
+                           case 11: 
                                System.exit(0);
                                break;
                            default:
                                System.out.println("Invalid choice!");
                        }
-                   } while (choice != 10);
+                   } while (choice != 11);
                    
                } else {
+                    int pr_id = stub.getProjectID(project);
+                    ArrayList<String> announcements = new ArrayList<>();
+                    announcements = stub.viewAnnouncements(pr_id);
+                    System.out.println("-------------------"+project+" announcements---------------------");
+                    for (int x = 0; x < announcements.size(); x++) {
+                    System.out.println(announcements.get(x));
+                    System.out.println("-----------------------------------------------------------------");
+                    }
                    System.out.println("Hi user! What do you want to do today?");
                    int userChoice;
                    do {
@@ -210,6 +231,23 @@ public class Client {
                                console.nextLine();
                                break;
                            case 4:
+                               int pd = stub.getProjectID(project);
+                               ArrayList<String> ups = new ArrayList<>();
+                               ups = stub.viewFiles(pd);
+                               System.out.println("--------------------------------Project Files-------------------------------");
+                               for (int w = 0; w < ups.size(); w++) {
+                                   System.out.println(ups.get(w));
+                               }
+                               System.out.print("Enter file name you want to download: ");
+                               String download = console.nextLine();
+                               System.out.print("Enter path directory where you want to place your download: ");
+                               String dpath = console.nextLine();
+                               boolean dld = stub.downloadFile(download,dpath,pd);
+                               if(dld) {
+                                   System.out.println("Download Success.");
+                               } else {
+                                   System.out.println("Download failed.");
+                               }
                                break;
                            case 5:
                                int p_id = stub.getProjectID(project);
@@ -257,7 +295,8 @@ public class Client {
         System.out.println("7. View file revisions.");
         System.out.println("8. Download file");
         System.out.println("9. Project Chat");
-        System.out.println("10. Exit");
+        System.out.println("10. Posting of announcement.");
+        System.out.println("11. Exit");
     }
     
     public static void showUserMenu() {

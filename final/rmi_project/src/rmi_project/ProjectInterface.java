@@ -21,7 +21,9 @@ public interface ProjectInterface extends Remote {
     public ArrayList viewFileRevisions(String filename, int project_id) throws RemoteException, SQLException;
     public ArrayList viewAllProjects() throws RemoteException, SQLException;
     public ArrayList viewUserProjects(String username) throws RemoteException, SQLException;
-    public String downloadFile(String filename, int project_id) throws RemoteException, SQLException, IOException;
+    public boolean downloadFile(String filename, String filepath, int project_id) throws RemoteException, SQLException, IOException;
     public String sendMessage(String message, String username, int project_id) throws RemoteException, SQLException;
     public ArrayList viewMessages(int project_id) throws RemoteException, SQLException;
+    public String postAnnouncement(String announcement, String username, int project_id) throws RemoteException, SQLException;
+    public ArrayList viewAnnouncements(int project_id) throws RemoteException, SQLException;
 }

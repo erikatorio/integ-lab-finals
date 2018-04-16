@@ -1,4 +1,5 @@
 package rmi_project;
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -104,7 +105,7 @@ public class AdminServer extends UnicastRemoteObject implements ProjectInterface
         
         int rowsInserted = statement.executeUpdate();
         System.out.println((rowsInserted > 0)
-                            ? "A new customer was successfully added!"
+                            ? "A new user was successfully added!"
                             : "Nothing was inserted...");
         System.out.println("Press any key to continue...");
         console.nextLine();
@@ -247,6 +248,8 @@ public class AdminServer extends UnicastRemoteObject implements ProjectInterface
                 switch(choice) {
                     case 1:
                         System.out.println(startServer());
+                        System.out.println("Press any key to continue...");
+                        console.nextLine();
                         break;
                     case 2:
                         addUser();
@@ -487,7 +490,7 @@ public class AdminServer extends UnicastRemoteObject implements ProjectInterface
     
     //download files
     @Override
-    public String downloadFile(String filename, int project_id) throws RemoteException, SQLException, IOException {
+    public boolean downloadFile(String filename, String filepath, int project_id) throws RemoteException, SQLException, IOException {
         String query = "SELECT file FROM files WHERE filename = ? AND p_id = ?";
         PreparedStatement statement = conn.prepareStatement(query);
         statement.setString(1, filename);
@@ -497,8 +500,8 @@ public class AdminServer extends UnicastRemoteObject implements ProjectInterface
         if(result.next()) {
             Blob b = result.getBlob("file");
             InputStream input = b.getBinaryStream();
-            File f = new File("./downloads/"+filename);
-            OutputStream output = new FileOutputStream(f);
+            File file = new File(filepath+"/"+filename);
+            OutputStream output = new FileOutputStream(file);
             
             int read = -1;
             byte[] buffer = new byte[10000];
@@ -507,9 +510,9 @@ public class AdminServer extends UnicastRemoteObject implements ProjectInterface
             }
             input.close();
             output.close();
-            return "Sucessfully downloaded file!";
+            return true;
         } else {
-            return "Download failed.";
+            return false;
         }
     }
     
@@ -573,5 +576,36 @@ public class AdminServer extends UnicastRemoteObject implements ProjectInterface
             messages.add("["+sender+"] : "+message);
         }
         return messages;
+    }
+    
+    //allows project leader to post announcements
+    @Override
+    public String postAnnouncement(String announcement, String username, int project_id) throws RemoteException, SQLException {
+        String sql = "INSERT INTO announcements(announcement, poster, projectid) VALUES(?,?,?)";
+        PreparedStatement statement = conn.prepareStatement(sql);
+        statement.setString(1, announcement);
+        statement.setString(2, username);
+        statement.setInt(3, project_id);
+        int annPosted = statement.executeUpdate();
+        if (annPosted > 0) {
+            return "Announcement posted!";
+        } else {
+            return "Failed to post announcement.";
+        }
+    }
+    
+    //allows project member to view announcements
+    @Override
+    public ArrayList viewAnnouncements(int project_id) throws RemoteException, SQLException {
+        String query = "SELECT announcement FROM announcements WHERE projectid = ?";
+        PreparedStatement statement = conn.prepareStatement(query);
+        statement.setInt(1, project_id);
+        ResultSet result = statement.executeQuery();
+        ArrayList<String> announcements = new ArrayList<>();
+        while(result.next()) {
+            String announcement = result.getString("announcement");
+            announcements.add(announcement);
+        }
+        return announcements;
     }
 }
