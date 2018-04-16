@@ -2,18 +2,21 @@ package rmi_project;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.rmi.server.UnicastRemoteObject;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
 
 import java.sql.*;
+import java.text.DateFormat;
 import java.util.ArrayList;
-//import java.text.DateFormat;
 //import java.text.ParseException;
-//import java.text.SimpleDateFormat;
-//import java.util.Date;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -21,11 +24,10 @@ import java.util.logging.Logger;
 //import java.util.logging.Logger;
 
 public class AdminServer extends UnicastRemoteObject implements ProjectInterface {
-    private static String connectionUrl = "jdbc:mysql://localhost:8889/rmi_project?user=root&password=root";
     private static Connection conn;
     private static Scanner console = new Scanner(System.in);
     private Registry registry;
-    
+            
     public AdminServer() throws RemoteException {
      super();   
     }
@@ -51,9 +53,10 @@ public class AdminServer extends UnicastRemoteObject implements ProjectInterface
     }
     
     //connects to database
-    public static void connectToDB() {
+    public static void connectToDB(String port, String user, String pass) {
         try {
             Class.forName("com.mysql.jdbc.Driver");
+            String connectionUrl = "jdbc:mysql://localhost:"+port+"/rmi_project?user="+user+"&password="+pass;
             conn = DriverManager.getConnection(connectionUrl);
             System.out.println("Connection successful!");
             System.out.print("Press any key to continue...");
@@ -201,7 +204,7 @@ public class AdminServer extends UnicastRemoteObject implements ProjectInterface
         statement.setString(1, "completed");
         ResultSet result = statement.executeQuery();
         
-        System.out.println("On-going projects\n");
+        System.out.println("Completed projects\n");
         System.out.printf("%-5s%-20s%-20s%n", "ID", "Project Name", "Project Leader");
         
         while(result.next()) {
@@ -219,7 +222,14 @@ public class AdminServer extends UnicastRemoteObject implements ProjectInterface
 
     //main method
     public static void main(String[] args) throws RemoteException, SQLException {
-        connectToDB();
+        System.out.print("Enter mysql port number: ");
+        String port = console.nextLine();
+        System.out.print("Enter mysql username: ");
+        String user = console.nextLine();
+        System.out.print("Enter mysql password: ");
+        String pass = console.nextLine();
+        connectToDB(port, user, pass);
+        
         System.out.print("Enter username: ");
         String username = console.nextLine();
         System.out.print("Enter password: ");
@@ -388,18 +398,118 @@ public class AdminServer extends UnicastRemoteObject implements ProjectInterface
     
     //upload file
     @Override
-    public String uploadFile(String file, String username, int project_id) throws RemoteException, SQLException, FileNotFoundException {
-        String sql = "INSERT into files(file, user, p_id) VALUES(?,?,?)";
-        PreparedStatement statement = conn.prepareStatement(sql);
-        InputStream in = new FileInputStream(new File(file));
-        statement.setBlob(1, in);
-        statement.setString(2, username);
-        statement.setInt(3, project_id);
-        int addedFile = statement.executeUpdate();
-        if (addedFile > 0) {
+    public String uploadFile(String filepath, String filename, String username, int project_id) throws RemoteException, SQLException, FileNotFoundException {
+        String query = "SELECT file_id FROM files WHERE filename = ? AND pr_id = ?";
+        PreparedStatement qStatement = conn.prepareStatement(query);
+        qStatement.setString(1, filename);
+        qStatement.setInt(2, project_id);
+        ResultSet result = qStatement.executeQuery();
+        String file = filepath+filename;
+        int addedFile = 0;
+        int addedLog = 0;
+        Date date = new Date();
+        Timestamp timestamp = new Timestamp(date.getTime());
+        if(result.next()) {
+            String s = "UPDATE files SET file = ?, user = ? WHERE file_id = ?";
+            PreparedStatement update = conn.prepareStatement(s);
+            InputStream input = new FileInputStream(new File(file));
+            update.setBlob(1, input);
+            update.setString(2, username);
+            update.setInt(3, result.getInt("file_id"));
+            addedFile = update.executeUpdate();
+            
+           String sToo = "INSERT into file_log(filename, user_r, pr_id, date_r) VALUE(?,?,?,?)";
+           PreparedStatement updateToo = conn.prepareStatement(sToo);
+           updateToo.setString(1, filename);
+           updateToo.setString(2, username);
+           updateToo.setInt(3, project_id);
+           updateToo.setTimestamp(4, timestamp);
+           addedLog = updateToo.executeUpdate();
+        } else {
+           String sql = "INSERT into files(file, user, p_id, filename) VALUES(?,?,?,?)";
+           PreparedStatement statement = conn.prepareStatement(sql);
+           InputStream in = new FileInputStream(new File(file));
+           statement.setBlob(1, in);
+           statement.setString(2, username);
+           statement.setInt(3, project_id);
+           statement.setString(4, filename);
+           addedFile = statement.executeUpdate();
+           
+           String sqlToo = "INSERT into file_log(filename, user_r, pr_id, date_r) VALUE(?,?,?,?)";
+           PreparedStatement statementToo = conn.prepareStatement(sqlToo);
+           statementToo.setString(1, filename);
+           statementToo.setString(2, username);
+           statementToo.setInt(3, project_id);
+           statementToo.setTimestamp(4, timestamp);
+           addedLog = statementToo.executeUpdate();
+        }
+        
+        
+        if (addedFile > 0 && addedLog > 0) {
             return "Successfully uploaded file!";
         } else {
             return "Upload Failed.";
+        }
+    }
+    
+    //displays file revisions
+    @Override
+    public ArrayList viewFileRevisions(String filename, int project_id) throws RemoteException, SQLException {
+        String query = "SELECT user_r, date_r FROM file_log WHERE filename = ? AND pr_id = ?";
+        PreparedStatement statement = conn.prepareStatement(query);
+        statement.setString(1, filename);
+        statement.setInt(2, project_id);
+        ResultSet result = statement.executeQuery();
+        ArrayList<String> revisions = new ArrayList<>();
+        DateFormat revisionDateForm = new SimpleDateFormat("MM-dd-yyyy HH:MM");
+        while(result.next()) {
+            String username = result.getString("user_r");
+            String timestamp = revisionDateForm.format(result.getTimestamp("date_r"));
+            revisions.add(username+"    "+timestamp);
+        }
+        return revisions;
+    }
+    
+    //displays all files uploaded to a project
+    @Override
+    public ArrayList viewFiles(int project_id) throws RemoteException, SQLException {
+        String query = "SELECT filename FROM files WHERE p_id = ?";
+        PreparedStatement statement = conn.prepareStatement(query);
+        statement.setInt(1, project_id);
+        ResultSet result = statement.executeQuery();
+        ArrayList<String> uploads = new ArrayList<>();
+        while(result.next()) {
+            String file = result.getString("filename");
+            uploads.add(file);
+        }
+        return uploads;
+    }
+    
+    //download files
+    @Override
+    public String downloadFile(String filename, int project_id) throws RemoteException, SQLException, IOException {
+        String query = "SELECT file FROM files WHERE filename = ? AND p_id = ?";
+        PreparedStatement statement = conn.prepareStatement(query);
+        statement.setString(1, filename);
+        statement.setInt(2, project_id);
+        ResultSet result = statement.executeQuery();
+        
+        if(result.next()) {
+            Blob b = result.getBlob("file");
+            InputStream input = b.getBinaryStream();
+            File f = new File("./downloads/"+filename);
+            OutputStream output = new FileOutputStream(f);
+            
+            int read = -1;
+            byte[] buffer = new byte[10000];
+            while((read = input.read(buffer)) != -1) {
+                output.write(buffer, 0, read);
+            }
+            input.close();
+            output.close();
+            return "Sucessfully downloaded file!";
+        } else {
+            return "Download failed.";
         }
     }
     
@@ -431,5 +541,37 @@ public class AdminServer extends UnicastRemoteObject implements ProjectInterface
             projects.add(p);
         }
         return projects;
+    }
+    
+    //send and store messages in a project
+    @Override
+    public String sendMessage(String message, String username, int project_id) throws RemoteException, SQLException {
+        String send = "INSERT INTO messages(message, sender, pj_id) VALUES(?,?,?)";
+        PreparedStatement statement = conn.prepareStatement(send);
+        statement.setString(1, message);
+        statement.setString(2, username);
+        statement.setInt(3, project_id);
+        int messageSent = statement.executeUpdate();
+        if(messageSent > 0) {
+            return "Message sent!";
+        } else {
+            return "Message sending failure.";
+        }
+    }
+    
+    //view messages
+    @Override
+    public ArrayList viewMessages(int project_id) throws RemoteException, SQLException {
+        String query = "SELECT message, sender FROM messages WHERE pj_id = ?";
+        PreparedStatement statement = conn.prepareStatement(query);
+        statement.setInt(1, project_id);
+        ResultSet result = statement.executeQuery();
+        ArrayList<String> messages = new ArrayList<>();
+        while(result.next()) {
+            String message = result.getString("message");
+            String sender = result.getString("sender");
+            messages.add("["+sender+"] : "+message);
+        }
+        return messages;
     }
 }
